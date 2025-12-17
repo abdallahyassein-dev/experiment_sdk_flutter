@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:experiment_sdk_flutter/types/experiment_fetch_item.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 abstract class QueryParameters {
@@ -47,7 +48,7 @@ class HttpClient {
         await get(queryParameters, timeout);
         return;
       }
-      print('Experiment SDK Network Error: $e');
+      debugPrint('Experiment SDK Network Error: $e');
       return;
     }
 
