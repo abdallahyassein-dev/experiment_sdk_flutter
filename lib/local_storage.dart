@@ -58,21 +58,33 @@ class LocalStorage {
       dynamic value = prefs.get(key);
 
       if (value is String) {
+        // Validation: verify if string looks like a JSON object to prevent FormatException
+        // The error "Unexpected character (at character 1) en" indicates non-JSON strings (like 'en') are present.
+        if (!value.trim().startsWith('{')) {
+          if (kDebugMode) {
+            debugPrint('[LocalStorage] Skipping non-JSON value for key: $key');
+          }
+          continue;
+        }
+
         try {
           final decoded = jsonDecode(value);
           if (decoded is Map<String, dynamic>) {
             newMap[key] = ExperimentVariant.fromMap(decoded);
           } else {
-            if (kDebugMode)
-              debugPrint('[LocalStorage] تجاهل المفتاح $key: مش خريطة JSON');
+            if (kDebugMode) {
+              debugPrint('[LocalStorage] Key $key ignored: Not a JSON Map');
+            }
           }
         } catch (e) {
-          if (kDebugMode)
-            debugPrint('[LocalStorage] فشل فك ترميز المفتاح $key: $e');
+          if (kDebugMode) {
+            debugPrint('[LocalStorage] Failed to decode key $key: $e');
+          }
         }
       } else {
-        if (kDebugMode)
-          debugPrint('[LocalStorage] تجاهل المفتاح $key: مش String');
+        if (kDebugMode) {
+          debugPrint('[LocalStorage] Key $key ignored: Not a String');
+        }
       }
     }
 
