@@ -27,33 +27,44 @@ class HttpClient {
   Future<void> get(QueryParameters queryParameters, [Duration? timeout]) async {
     final uri = Uri.https(_baseUri, '/v1/vardata', queryParameters.toJson());
 
-    final request =
-        httpClient.get(uri, headers: {'Authorization': 'Api-Key $_apiKey'});
+    http.Response response;
 
-    if (timeout != null) {
-      request.timeout(
-        timeout,
-        onTimeout: () => throw TimeoutException('Request timed out!'),
-      );
+    try {
+      var request =
+          httpClient.get(uri, headers: {'Authorization': 'Api-Key $_apiKey'});
+
+      if (timeout != null) {
+        request = request.timeout(
+          timeout,
+          onTimeout: () => throw TimeoutException('Request timed out!'),
+        );
+      }
+
+      response = await request;
+    } catch (e) {
+      if (!_isRetry && _shouldRetry) {
+        _isRetry = true;
+        await get(queryParameters, timeout);
+        return;
+      }
+      print('Experiment SDK Network Error: $e');
+      return;
     }
-
-    final response = await request;
 
     if (response.statusCode != 200) {
       String data = response.body;
 
       if (!_isRetry && _shouldRetry) {
-        // If the server did not return a 200 OK response,
-        // then throw an exception.
-        throw Exception({
-          'message': 'Failed to fetch through SDK!',
-          'status': response.statusCode,
-          'trace': data
-        });
+        _isRetry = true;
+        await get(queryParameters, timeout);
+        return;
       }
 
-      _isRetry = true;
-      get(queryParameters, timeout);
+      throw Exception({
+        'message': 'Failed to fetch through SDK!',
+        'status': response.statusCode,
+        'trace': data
+      });
     }
 
     Map<String, dynamic> data =

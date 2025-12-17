@@ -23,9 +23,7 @@ class LocalStorage {
         _prefixesSet.add(namespace);
       } catch (e) {
         if (kDebugMode) {
-          debugPrint(
-            '[LocalStorage] Skipping setPrefix("$namespace")',
-          );
+          debugPrint('[LocalStorage] Skipping setPrefix("$namespace")');
         }
       }
     }
@@ -59,7 +57,23 @@ class LocalStorage {
     for (String key in keys) {
       dynamic value = prefs.get(key);
 
-      newMap[key] = ExperimentVariant.fromMap(jsonDecode(value));
+      if (value is String) {
+        try {
+          final decoded = jsonDecode(value);
+          if (decoded is Map<String, dynamic>) {
+            newMap[key] = ExperimentVariant.fromMap(decoded);
+          } else {
+            if (kDebugMode)
+              debugPrint('[LocalStorage] تجاهل المفتاح $key: مش خريطة JSON');
+          }
+        } catch (e) {
+          if (kDebugMode)
+            debugPrint('[LocalStorage] فشل فك ترميز المفتاح $key: $e');
+        }
+      } else {
+        if (kDebugMode)
+          debugPrint('[LocalStorage] تجاهل المفتاح $key: مش String');
+      }
     }
 
     map = newMap;
@@ -76,8 +90,9 @@ class LocalStorage {
 
   static _getNamespace(String apiKey) {
     final apiKeyToSubstring = apiKey.length > 6 ? apiKey : 'default-api-key';
-    String shortApiKey =
-        apiKeyToSubstring.substring(apiKeyToSubstring.length - 6);
+    String shortApiKey = apiKeyToSubstring.substring(
+      apiKeyToSubstring.length - 6,
+    );
 
     return 'ampli-$shortApiKey';
   }
